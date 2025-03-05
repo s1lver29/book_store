@@ -1,0 +1,15 @@
+[project]
+name = "book_store"
+version = "0.1.0"
+description = "Default template for PDM package"
+authors = [
+    {name = "s1lver29", email = "nikitaselver@yandex.ru"},
+]
+dependencies = ["fastapi[standard]>=0.115.11", "SQLAlchemy>=2.0.38", "alembic>=1.15.1", "python-dotenv>=1.0.1", "asyncpg>=0.30.0", "pydantic-settings>=2.8.1", "orjson>=3.10.15"]
+requires-python = "==3.12.*"
+readme = "README.md"
+license = {text = "None"}
+
+
+[tool.pdm]
+distribution = false
