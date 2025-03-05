@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy import select
 from src.models.books import Book
-from src.schemas import IncomingBook, ReturnedAllbooks, ReturnedBook
+from src.schemas import IncomingBook, ReturnedAllbooks, ReturnedBook, UpdateBook
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.config.connection_db import async_database_session
 
@@ -31,6 +31,7 @@ async def create_book(
             "author": book.author,
             "year": book.year,
             "pages": book.pages,
+            "seller_id": book.seller_id,
         }
     )
 
@@ -71,17 +72,20 @@ async def delete_book(book_id: int, session: DBSession):
 
 
 # Ручка для обновления данных о книге
-@books_router.put("/{book_id}", response_model=ReturnedBook)
-async def update_book(book_id: int, new_book_data: ReturnedBook, session: DBSession):
+@books_router.put(
+    "/{book_id}",
+    response_model=ReturnedBook,
+)
+async def update_book(book_id: int, new_book_data: UpdateBook, session: DBSession):
     # Оператор "морж", позволяющий одновременно и присвоить значение и проверить его. Заменяет то, что закомментировано выше.
-    if updated_book := await session.get(Book, book_id):
-        updated_book.author = new_book_data.author
-        updated_book.title = new_book_data.title
-        updated_book.year = new_book_data.year
-        updated_book.pages = new_book_data.pages
+    updated_book = await session.get(Book, book_id)
+    if not updated_book:
+        return Response(status_code=status.HTTP_404_NOT_FOUND)
 
-        await session.flush()
+    for field, value in new_book_data.model_dump(exclude_unset=True).items():
+        setattr(updated_book, field, value)
 
-        return updated_book
+    await session.commit()
+    await session.refresh(updated_book)
 
-    return Response(status_code=status.HTTP_404_NOT_FOUND)
+    return updated_book

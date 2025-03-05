@@ -1,7 +1,6 @@
-from sqlalchemy import String, Integer
+from sqlalchemy import String, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
-
-# from src.models import Seller
+from sqlalchemy.orm import relationship
 
 from .base import BaseModel
 
@@ -14,3 +13,8 @@ class Book(BaseModel):
     author: Mapped[str] = mapped_column(String(100), nullable=False)
     year: Mapped[int] = mapped_column(Integer, nullable=False)
     pages: Mapped[int] = mapped_column(Integer, nullable=False)
+    seller_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("sellers.id"), nullable=False
+    )
+
+    seller: Mapped["Seller"] = relationship("Seller", back_populates="books")  # type: ignore # noqa: F821
