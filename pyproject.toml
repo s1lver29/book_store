@@ -5,7 +5,7 @@ description = "Default template for PDM package"
 authors = [
     {name = "s1lver29", email = "nikitaselver@yandex.ru"},
 ]
-dependencies = ["fastapi[standard]>=0.115.11", "SQLAlchemy>=2.0.38", "alembic>=1.15.1", "python-dotenv>=1.0.1", "asyncpg>=0.30.0", "pydantic-settings>=2.8.1", "orjson>=3.10.15"]
+dependencies = ["fastapi[standard]>=0.115.11", "SQLAlchemy>=2.0.38", "alembic>=1.15.1", "python-dotenv>=1.0.1", "asyncpg>=0.30.0", "pydantic-settings>=2.8.1", "orjson>=3.10.15", "pyjwt>=2.10.1", "python-jose>=3.4.0", "passlib>=1.7.4", "cryptography>=44.0.2", "argon2-cffi>=23.1.0"]
 requires-python = "==3.12.*"
 readme = "README.md"
 license = {text = "None"}
@@ -13,3 +13,12 @@ license = {text = "None"}
 
 [tool.pdm]
 distribution = false
+
+[dependency-groups]
+dev = [
+    "ruff>=0.9.9",
+    "pytest>=8.3.5",
+    "pytest-asyncio>=0.25.3",
+    "httpx>=0.28.1",
+    "pytest-mock>=3.14.0",
+]

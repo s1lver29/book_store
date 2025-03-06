@@ -1,5 +1,5 @@
-from pydantic import BaseModel, Field, field_validator, EmailStr
-from pydantic_core import PydanticCustomError
+from pydantic import BaseModel, EmailStr
+
 from src.schemas.books import ReturnedBook
 
 __all__ = ["SellerBase", "SellerCreate", "SellerReturn", "SellerWithBooks"]

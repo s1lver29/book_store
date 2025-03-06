@@ -1,24 +1,31 @@
 from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from passlib.context import CryptContext
 from sqlalchemy import select
-from src.models.seller import Seller
-from src.schemas.sellers import SellerCreate, SellerReturn, SellerWithBooks, SellerBase
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.config.connection_db import async_database_session
+from src.middlewares.auth import get_current_user
+from src.models.seller import Seller
+from src.schemas.sellers import SellerBase, SellerCreate, SellerReturn, SellerWithBooks
 
 sellers_router = APIRouter(tags=["sellers"], prefix="/sellers")
 
 DBSession = Annotated[AsyncSession, Depends(async_database_session)]
+current_user = Annotated[Seller, Depends(get_current_user)]
+
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 
-@sellers_router.post(
-    "/", response_model=SellerReturn, status_code=status.HTTP_201_CREATED
-)
+@sellers_router.post("/", response_model=SellerReturn, status_code=status.HTTP_201_CREATED)
 async def create_seller(
     seller: SellerCreate,
     session: DBSession,
 ):
     new_seller = Seller(**seller.model_dump())
+    new_seller.password = pwd_context.hash(new_seller.password)
+
     session.add(new_seller)
     await session.commit()
     await session.refresh(new_seller)
@@ -35,10 +42,7 @@ async def get_all_sellers(
 
 
 @sellers_router.get("/{seller_id}", response_model=SellerWithBooks)
-async def get_seller(
-    seller_id: int,
-    session: DBSession,
-):
+async def get_seller(seller_id: int, session: DBSession, curr_user: current_user):
     result = await session.execute(select(Seller).where(Seller.id == seller_id))
     seller = result.scalars().first()
     if not seller:
