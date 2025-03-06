@@ -1,39 +1,25 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, Response, status
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import select
-from src.models.books import Book
-from src.schemas import IncomingBook, ReturnedAllbooks, ReturnedBook, UpdateBook
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from src.config.connection_db import async_database_session
+from src.middlewares.auth import get_current_user
+from src.models.books import Book
+from src.models.seller import Seller
+from src.schemas import IncomingBook, ReturnedAllbooks, ReturnedBook, UpdateBook
 
 books_router = APIRouter(tags=["books"], prefix="/books")
 
-# CRUD - Create, Read, Update, Delete
 
 DBSession = Annotated[AsyncSession, Depends(async_database_session)]
+current_user = Annotated[Seller, Depends(get_current_user)]
 
 
-# Ручка для создания записи о книге в БД. Возвращает созданную книгу.
-# @books_router.post("/books/", status_code=status.HTTP_201_CREATED)
-@books_router.post(
-    "/", response_model=ReturnedBook, status_code=status.HTTP_201_CREATED
-)  # Прописываем модель ответа
-async def create_book(
-    book: IncomingBook,
-    session: DBSession,
-):  # прописываем модель валидирующую входные данные
-    # session = get_async_session() вместо этого мы используем иньекцию зависимостей DBSession
-
-    # это - бизнес логика. Обрабатываем данные, сохраняем, преобразуем и т.д.
-    new_book = Book(
-        **{
-            "title": book.title,
-            "author": book.author,
-            "year": book.year,
-            "pages": book.pages,
-            "seller_id": book.seller_id,
-        }
-    )
+@books_router.post("/", response_model=ReturnedBook, status_code=status.HTTP_201_CREATED)
+async def create_book(book: IncomingBook, session: DBSession, curr_user: current_user):
+    new_book = Book(**book.model_dump(), seller_id=curr_user.id)
 
     session.add(new_book)
     await session.flush()
@@ -41,18 +27,14 @@ async def create_book(
     return new_book
 
 
-# Ручка, возвращающая все книги
 @books_router.get("/", response_model=ReturnedAllbooks)
 async def get_all_books(session: DBSession):
-    # Хотим видеть формат
-    # books: [{"id": 1, "title": "blabla", ...., "year": 2023},{...}]
-    query = select(Book)  # SELECT * FROM book
+    query = select(Book)
     result = await session.execute(query)
     books = result.scalars().all()
     return {"books": books}
 
 
-# Ручка для получения книги по ее ИД
 @books_router.get("/{book_id}", response_model=ReturnedBook)
 async def get_book(book_id: int, session: DBSession):
     if result := await session.get(Book, book_id):
@@ -71,16 +53,19 @@ async def delete_book(book_id: int, session: DBSession):
         return Response(status_code=status.HTTP_404_NOT_FOUND)
 
 
-# Ручка для обновления данных о книге
-@books_router.put(
-    "/{book_id}",
-    response_model=ReturnedBook,
-)
-async def update_book(book_id: int, new_book_data: UpdateBook, session: DBSession):
-    # Оператор "морж", позволяющий одновременно и присвоить значение и проверить его. Заменяет то, что закомментировано выше.
+@books_router.put("/{book_id}", response_model=ReturnedBook)
+async def update_book(
+    book_id: int, new_book_data: UpdateBook, session: DBSession, curr_user: current_user
+):
     updated_book = await session.get(Book, book_id)
     if not updated_book:
         return Response(status_code=status.HTTP_404_NOT_FOUND)
+
+    if updated_book.seller_id != curr_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not allowed to update this book",
+        )
 
     for field, value in new_book_data.model_dump(exclude_unset=True).items():
         setattr(updated_book, field, value)
