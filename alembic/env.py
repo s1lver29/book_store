@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 
 from src.models.base import BaseModel
 from src.models.books import Book
+from src.models.seller import Seller
 
 load_dotenv()
 
