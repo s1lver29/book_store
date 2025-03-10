@@ -20,6 +20,48 @@ async def login_for_access_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(async_database_session),
 ):
+    """
+    Логин пользователя и получение токена доступа.
+
+    Эта функция проверяет имя пользователя и пароль, переданные в форме, и если они верны,
+    генерирует токен доступа с использованием JWT.
+    В случае некорректных данных возвращает ошибку 401.
+
+    Параметры
+    ----------
+    form_data : OAuth2PasswordRequestForm
+        Данные формы с именем пользователя (e_mail) и паролем, переданные пользователем.
+
+    session : AsyncSession
+        Сессия базы данных для выполнения запросов.
+
+    Возвращаемое значение
+    ---------------------
+    dict
+        Словарь с токеном доступа и типом токена.
+
+    Исключения
+    -----------
+    HTTPException
+        В случае неверных данных пользователя (неправильный email или пароль)
+        будет поднято исключение 401 Unauthorized с сообщением об ошибке.
+
+    Пример
+    -------
+    Пример успешного ответа:
+
+    {
+        "access_token": "some_jwt_token",
+        "token_type": "bearer"
+    }
+
+    Пример ошибки (неправильный email или пароль):
+
+    HTTP 401 Unauthorized
+    {
+        "detail": "Incorrect email or password"
+    }
+    """
     result = await session.execute(select(Seller).where(Seller.e_mail == form_data.username))
     seller = result.scalars().first()
     if not seller or not verify_password(form_data.password, seller.password):

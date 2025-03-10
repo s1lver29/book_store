@@ -15,7 +15,7 @@ class BaseBook(BaseModel):
 
 class IncomingBook(BaseBook):
     pages: int = Field(
-        default=150, alias="count_pages", ge=1, description="Pages must be greater than zero"
+        default=150, alias="pages", ge=1, description="Pages must be greater than zero"
     )
 
 
